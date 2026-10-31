@@ -1,0 +1,328 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Nadi Isi Rumah</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<style>
+/* Layout: "daily pulse" board — three colour-blocked KPI cards across the top, a petal chart column on the right, a wide bar chart and a state table below. Deliberately single light look, like the reference. */
+:root{color-scheme:light;--bg:#e9ecef;--board:#f3f4f6;--card:#ffffff;--ink:#1d1b20;--muted:#6f7177;--line:#e3e4e8;
+ --dark:#211f24;--orange:#ff4013;--grey:#cfd0d3;--rust:#8f1f12;--sand:#b49a8f;--stone:#a9abb0;--up:#2f9e44;--down:#e03131;
+ --font:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:14px}
+.board{max-width:1320px;margin:0 auto;padding-block:18px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.frame{background:var(--board);border-radius:26px;padding:clamp(14px,2.2vw,28px);display:grid;gap:14px}
+.top{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.logo{width:48px;height:48px;border-radius:12px;background:var(--orange);color:#fff;display:grid;place-items:center;font-weight:700;font-size:15px;letter-spacing:-.02em;flex:none}
+.hello{flex:1 1 260px;min-width:0}
+.hello h1{margin:0;font-size:clamp(17px,2vw,21px);font-weight:600}
+.hello p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.pills{display:flex;gap:8px;flex-wrap:wrap}
+.pill{background:var(--card);border-radius:12px;padding:8px 14px;color:var(--muted);font-size:14px}
+.main{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,1.05fr);gap:14px}
+.left,.right{display:grid;gap:14px;align-content:start;min-width:0}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.kpi{border-radius:22px;padding:20px 22px 16px;display:flex;flex-direction:column;gap:2px;min-width:0;position:relative}
+.kpi.dark{background:var(--dark);color:#fff}.kpi.orange{background:var(--orange);color:#fff}.kpi.grey{background:var(--grey);color:var(--ink)}
+.kpi h2{margin:0 0 6px;font-size:17px;font-weight:600}
+.kpi h2 span{display:block;font-size:12px;font-weight:400;opacity:.75}
+.kpi .row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.kpi .big{font-size:clamp(22px,2.4vw,27px);font-variant-numeric:tabular-nums}
+.kpi .chg{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+.kpi .prev{font-size:14px;opacity:.75;font-variant-numeric:tabular-nums}
+.kpi .viz{margin-top:10px}
+.dark .chg.good{color:#69db7c}.orange .chg{color:#fff}.grey .chg.bad{color:var(--down)}
+.panel{background:var(--card);border-radius:22px;padding:18px 22px;min-width:0;position:relative}
+.ph{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.ph h2{margin:0;font-size:18px;font-weight:600}
+.ph h2 .sep{color:var(--line);margin:0 8px}
+.ph h2 small{font-weight:400;color:var(--muted);font-size:14px}
+.sub{margin:4px 0 0;color:var(--muted);font-size:12.5px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;align-items:center}
+.legend i{display:inline-block;width:13px;height:13px;border-radius:50%;margin-right:5px;vertical-align:-2px}
+.hatch{background:repeating-linear-gradient(135deg,#bdbec2 0 2px,#fff 2px 4px);border:1px solid #c5c6ca}
+svg{display:block;width:100%;height:auto;overflow:visible}
+svg text{font-family:var(--font)}
+.how{margin:10px 0 0;font-size:12.5px;color:var(--muted)}
+.how b{color:var(--ink);font-weight:600}
+.seg{display:inline-flex;background:var(--board);border-radius:12px;padding:3px}
+.seg button{font:inherit;font-size:13px;border:0;background:none;color:var(--muted);padding:6px 12px;border-radius:9px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--orange);color:#fff}
+.seg.darkseg button[aria-pressed="true"]{background:var(--dark)}
+.seg button:focus-visible,th button:focus-visible{outline:2px solid var(--dark);outline-offset:1px}
+.tw{overflow-x:auto;margin-top:8px}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;min-width:640px}
+th{font-size:12.5px;font-weight:600;color:var(--ink);text-align:right;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th button{font:inherit;background:none;border:0;padding:0;cursor:pointer;color:inherit}
+td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:right;font-size:14.5px}
+td .st{display:flex;align-items:center;gap:10px}
+td .ab{width:34px;height:26px;border-radius:7px;display:grid;place-items:center;font-size:10.5px;font-weight:700;color:#fff;flex:none}
+td.pos{color:var(--up);font-weight:600}td.zero{color:var(--muted);font-weight:600}
+tr.nat td{font-weight:700;background:#fafafa}
+.scroll{max-height:420px;overflow:auto}
+thead th{position:sticky;top:0;background:var(--card)}
+.note{background:var(--dark);color:#fff;border-radius:18px;padding:16px 20px;display:grid;gap:6px;font-size:13px;line-height:1.45}
+.note b{font-size:15px}
+.note span{opacity:.75}
+.tip{position:absolute;pointer-events:none;background:var(--dark);color:#fff;border-radius:8px;padding:6px 10px;font-size:12.5px;opacity:0;transition:opacity .12s;z-index:9;white-space:nowrap}
+footer{font-size:12px;color:var(--muted);padding:0 6px}
+@media (max-width:1040px){.main{grid-template-columns:minmax(0,1fr)}.right{grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr))}}
+@media (max-width:760px){.kpis{grid-template-columns:minmax(0,1fr)}}
+@media (prefers-reduced-motion:no-preference){.kpi,.panel{animation:rise .5s cubic-bezier(.2,.8,.2,1) both}.kpi:nth-child(2){animation-delay:.06s}.kpi:nth-child(3){animation-delay:.12s}@keyframes rise{from{transform:translateY(8px)}to{transform:none}}}
+</style>
+
+<div class="board" id="app">
+ <div class="frame">
+  <header class="top">
+    <div class="logo" aria-hidden="true">SOH</div>
+    <div class="hello"><h1>Nadi isi rumah: bagaimana keadaan kita?</h1><p>Household pulse: how are Malaysian households doing? · KRI, <i>The State of Households 2026</i></p></div>
+    <div class="pills"><span class="pill">Malaysia</span><span class="pill">RM</span><span class="pill">Data 2024 · terbit Okt 2026</span></div>
+  </header>
+
+  <div class="main">
+   <div class="left">
+    <div class="kpis">
+      <section class="kpi dark" id="k1">
+        <h2>Pendapatan median<span>Median household income, monthly</span></h2>
+        <div class="row"><span class="big" id="k1v"></span><span class="chg good" id="k1c"></span></div>
+        <div class="prev" id="k1p"></div>
+        <div class="viz" id="k1s"></div>
+      </section>
+      <section class="kpi orange" id="k2">
+        <h2>Isi rumah<span>Households, 2024</span></h2>
+        <div class="row"><span class="big" id="k2v"></span><span class="chg" id="k2c"></span></div>
+        <div class="prev" id="k2p"></div>
+        <div class="viz" id="k2s"></div>
+      </section>
+      <section class="kpi grey" id="k3">
+        <h2>Perbelanjaan median<span>Median household spending, monthly</span></h2>
+        <div class="row"><span class="big" id="k3v"></span><span class="chg bad" id="k3c"></span></div>
+        <div class="prev" id="k3p"></div>
+        <div class="viz" id="k3s"></div>
+      </section>
+    </div>
+
+    <section class="panel">
+      <div class="ph">
+        <h2>Pendapatan<span class="sep">|</span>Perbelanjaan <small>ikut negeri, 2024</small></h2>
+        <div class="legend"><span><i style="background:var(--dark)"></i>Perbelanjaan median</span><span><i class="hatch"></i>Pendapatan median</span><span><i style="background:var(--orange)"></i>Dipilih</span></div>
+      </div>
+      <p class="sub">Median income vs median spending by state (RM, 2024 prices). Klik bar untuk pilih negeri.</p>
+      <div id="bars" style="margin-top:8px"></div>
+      <p class="how"><b>Cara baca:</b> Bar berjalur = pendapatan median, bar hitam = perbelanjaan median. Kotak atas bar dipilih: berapa peratus median belanja berbanding median pendapatan. Ini nisbah dua median, bukan peratus pendapatan setiap isi rumah.</p>
+    </section>
+
+    <section class="panel">
+      <div class="ph"><h2>Negeri <small>· pendapatan & baki</small></h2><span class="sub" style="margin:0">2022 → 2024, harga benar 2024</span></div>
+      <div class="tw scroll"><table id="tbl"><thead><tr>
+        <th><button type="button" data-k="state">Negeri</button></th>
+        <th><button type="button" data-k="inc2022">Pendapatan 2022</button></th>
+        <th><button type="button" data-k="cagr2224">Tumbuh/thn</button></th>
+        <th><button type="button" data-k="inc2024">Pendapatan 2024</button></th>
+        <th><button type="button" data-k="exp2024">Belanja 2024</button></th>
+        <th><button type="button" data-k="res2024">Baki 2024</button></th>
+        <th><button type="button" data-k="hh_over65">Ada warga emas</button></th>
+      </tr></thead><tbody></tbody></table></div>
+      <p class="how"><b>Cara baca:</b> "Tumbuh/thn" = kadar pertumbuhan tahunan kompaun (CAGR) pendapatan median 2022–24. Hijau = lebih laju daripada Malaysia. Klik tajuk lajur untuk susun.</p>
+    </section>
+   </div>
+
+   <div class="right">
+    <section class="panel">
+      <div class="ph"><h2>Kebahagiaan <small>(skor / 10)</small></h2></div>
+      <p class="sub">Malaysia Happiness Index, 2024</p>
+      <div id="petal" style="margin-top:6px"></div>
+      <div class="legend" id="petal-legend" style="font-size:12px"></div>
+      <p class="how"><b>Cara baca:</b> Panjang kelopak = skor. Garis bulat = 10. Hanya komponen yang nilainya dinyatakan dalam laporan.</p>
+    </section>
+    <section class="panel">
+      <div class="ph"><h2>Pertumbuhan pantas</h2></div>
+      <p class="sub">Negeri dengan CAGR pendapatan 2022–24 melebihi Malaysia. <span style="color:var(--orange)">Garis putus oren = Malaysia</span>.</p>
+      <div class="seg darkseg" role="group" aria-label="Pilih ukuran" id="seg" style="margin-top:8px"></div>
+      <div id="grow" style="margin-top:10px"></div>
+    </section>
+    <div class="note" id="note"></div>
+   </div>
+  </div>
+  <footer>Sumber: Khazanah Research Institute (2026), <i>From Income to Wellbeing: The State of Households 2026</i> (CC BY 3.0): Jadual 2.1, 3.1, 3.4, 7.1; Rajah 1.5; Bahagian 2.2; Rumusan Eksekutif. Data asas DOSM HIES 2024. Terjemahan BM bukan terjemahan rasmi KRI. Dikemas kini 23 Okt 2026.</footer>
+ </div>
+ <div class="tip" id="tip"></div>
+</div>
+
+<script>
+const DATA = {"access":[{"item":"health","bm":"Kemudahan kesihatan awam ≤5km","en":"Public health facility within 5km","y2014":86.5,"y2024":97.8},{"item":"primary","bm":"Sekolah rendah ≤5km","en":"Primary school within 5km","y2014":96.5,"y2024":98.7},{"item":"secondary","bm":"Sekolah menengah ≤5km","en":"Secondary school within 5km","y2014":88.7,"y2024":95.9}],"decile_residual":[{"decile":"B10","order":1,"gross":41,"disposable":-246},{"decile":"10–20","order":2,"gross":364,"disposable":-66},{"decile":"20–30","order":3,"gross":772,"disposable":177},{"decile":"30–40","order":4,"gross":1233,"disposable":458},{"decile":"40–50","order":5,"gross":1782,"disposable":796},{"decile":"50–60","order":6,"gross":2404,"disposable":1149},{"decile":"60–70","order":7,"gross":3294,"disposable":1732},{"decile":"70–80","order":8,"gross":4548,"disposable":2663},{"decile":"80–90","order":9,"gross":6361,"disposable":3958},{"decile":"T10","order":10,"gross":14252,"disposable":8719}],"epf":[{"range":"<RM10k","members_mil":7.2,"savings_bil":19.3,"pop_share":44,"savings_share":2},{"range":"10k–20k","members_mil":2.1,"savings_bil":29.7,"pop_share":13,"savings_share":2},{"range":"20k–30k","members_mil":1.1,"savings_bil":26.2,"pop_share":7,"savings_share":2},{"range":"30k–40k","members_mil":0.7,"savings_bil":25.0,"pop_share":4,"savings_share":2},{"range":"40k–50k","members_mil":0.6,"savings_bil":24.6,"pop_share":3,"savings_share":2},{"range":"50k–100k","members_mil":1.7,"savings_bil":122.4,"pop_share":10,"savings_share":10},{"range":"100k–240k","members_mil":1.7,"savings_bil":269.3,"pop_share":11,"savings_share":23},{"range":"240k–650k","members_mil":0.9,"savings_bil":334.9,"pop_share":6,"savings_share":28},{"range":"650k–1mil","members_mil":0.2,"savings_bil":115.3,"pop_share":1,"savings_share":10},{"range":">RM1mil","members_mil":0.1,"savings_bil":228.7,"pop_share":1,"savings_share":19}],"facts":[{"id":"households","value":8.2,"unit":"juta","bm":"isi rumah Malaysia","en":"Malaysian households, 2024","ref":"Bahagian 2.2"},{"id":"districts_total","value":166,"unit":"daerah","bm":"jumlah daerah","en":"districts","ref":"Rumusan Eksekutif"},{"id":"districts_above_median","value":22,"unit":"daerah","bm":"daerah dengan pendapatan median melebihi median nasional","en":"districts above national median income","ref":"Rumusan Eksekutif"},{"id":"hh_in_rich_districts","value":46.2,"unit":"%","bm":"isi rumah tinggal di 22 daerah itu","en":"of households live in those 22 districts","ref":"Rumusan Eksekutif"},{"id":"districts_poverty_above","value":111,"unit":"daerah","bm":"daerah dengan kadar kemiskinan melebihi 5.1%","en":"districts with poverty above the national rate","ref":"Rumusan Eksekutif"},{"id":"districts_poverty_double","value":66,"unit":"daerah","bm":"daerah melebihi dua kali kadar nasional (10.2%)","en":"districts above double the national rate","ref":"Rumusan Eksekutif"},{"id":"pitas","value":50,"unit":"%","bm":"kadar kemiskinan Pitas, Sabah (tertinggi)","en":"poverty rate in Pitas, Sabah (highest)","ref":"Rumusan Eksekutif"},{"id":"kuala_krai","value":20.2,"unit":"%","bm":"kadar kemiskinan Kuala Krai (tertinggi di Semenanjung)","en":"Kuala Krai, highest in Peninsular","ref":"Rumusan Eksekutif"},{"id":"rural_ratio","value":56.4,"unit":"%","bm":"pendapatan median luar bandar berbanding bandar","en":"rural median income as share of urban","ref":"Rumusan Eksekutif"},{"id":"urban_rural_gap","value":3551,"unit":"RM","bm":"jurang median pendapatan bandar–luar bandar","en":"urban–rural median income gap","ref":"Rumusan Eksekutif"},{"id":"wage_share","value":62.9,"unit":"%","bm":"sumbangan gaji kepada pendapatan isi rumah","en":"wages' share of household income","ref":"Rumusan Eksekutif"},{"id":"wage_urban","value":2851,"unit":"RM","bm":"gaji median bandar","en":"urban median wage, 2024","ref":"Rumusan Eksekutif"},{"id":"wage_rural","value":1698,"unit":"RM","bm":"gaji median luar bandar","en":"rural median wage, 2024","ref":"Rumusan Eksekutif"},{"id":"b10_residual_share","value":1.9,"unit":"%","bm":"baki pendapatan kasar B10 selepas belanja, 2024","en":"bottom 10% income left after spending, 2024","ref":"Rumusan Eksekutif"},{"id":"b10_residual_share_2019","value":10.8,"unit":"%","bm":"baki pendapatan kasar B10, 2019","en":"bottom 10% income left, 2019","ref":"Rumusan Eksekutif"},{"id":"b10_income","value":2227,"unit":"RM","bm":"pendapatan kasar bulanan isi rumah B10","en":"bottom 10% monthly gross income","ref":"Rumusan Eksekutif"},{"id":"b10_exp_rise","value":21.3,"unit":"%","bm":"kenaikan perbelanjaan B10, 2019–24","en":"bottom 10% spending rise 2019–24","ref":"Rumusan Eksekutif"},{"id":"b10_exp_rise_rm","value":384,"unit":"RM","bm":"kenaikan perbelanjaan B10 (RM)","en":"bottom 10% spending rise (RM)","ref":"Rumusan Eksekutif"},{"id":"t10_exp_rise_rm","value":65,"unit":"RM","bm":"kenaikan perbelanjaan T10 (RM)","en":"top 10% spending rise (RM)","ref":"Rumusan Eksekutif"},{"id":"eat_out","value":902.7,"unit":"RM","bm":"belanja makan di luar sebulan","en":"eating out, monthly average","ref":"Rumusan Eksekutif"},{"id":"eat_home","value":875.8,"unit":"RM","bm":"belanja makanan di rumah sebulan","en":"food at home, monthly average","ref":"Rumusan Eksekutif"},{"id":"overweight","value":32.6,"unit":"%","bm":"dewasa berlebihan berat badan, 2023","en":"adults overweight, 2023","ref":"Rumusan Eksekutif"},{"id":"obese","value":21.8,"unit":"%","bm":"dewasa obes, 2023","en":"adults obese, 2023","ref":"Rumusan Eksekutif"},{"id":"above_healthy","value":54.4,"unit":"%","bm":"dewasa melebihi berat sihat","en":"adults above a healthy weight","ref":"Rumusan Eksekutif"},{"id":"food_share_b10","value":38.3,"unit":"%","bm":"bahagian belanja untuk makanan, B10","en":"food share of spending, bottom 10%","ref":"Rumusan Eksekutif"},{"id":"food_share_t10","value":24.5,"unit":"%","bm":"bahagian belanja untuk makanan, T10","en":"food share of spending, top 10%","ref":"Rumusan Eksekutif"},{"id":"food_imports","value":21.8,"unit":"USD bil","bm":"import makanan, 2025","en":"food imports, 2025","ref":"Bahagian 9.2"},{"id":"food_exports","value":12.6,"unit":"USD bil","bm":"eksport makanan, 2025","en":"food exports, 2025","ref":"Bahagian 9.2"},{"id":"key_foods_share","value":29.1,"unit":"%","bm":"bil import makanan untuk 8 makanan utama","en":"of food import bill from 8 key foods","ref":"Bahagian 9.2"},{"id":"urban_1970","value":29.4,"unit":"%","bm":"penduduk bandar, 1970","en":"urban population, 1970","ref":"Rumusan Eksekutif"},{"id":"urban_2024","value":76.9,"unit":"%","bm":"penduduk bandar, 2024","en":"urban population, 2024","ref":"Rumusan Eksekutif"},{"id":"perak_old_head","value":25.6,"unit":"%","bm":"isi rumah Perak diketuai warga emas","en":"Perak households headed by an older person","ref":"Rumusan Eksekutif"},{"id":"underemp_kl","value":18.6,"unit":"%","bm":"guna tenaga tidak penuh (kemahiran), KL – terendah","en":"skill-related underemployment, KL (lowest)","ref":"Rumusan Eksekutif"},{"id":"underemp_pg","value":26.5,"unit":"%","bm":"guna tenaga tidak penuh (kemahiran), P. Pinang","en":"skill-related underemployment, Penang","ref":"Rumusan Eksekutif"},{"id":"poor_households","value":418848,"unit":"isi rumah","bm":"isi rumah dalam kemiskinan mutlak, 2024","en":"households in absolute poverty, 2024","ref":"Bahagian 2.6"},{"id":"poor_households_2022","value":490370,"unit":"isi rumah","bm":"isi rumah dalam kemiskinan mutlak, 2022","en":"households in absolute poverty, 2022","ref":"Bahagian 2.6"},{"id":"urban_hh_share","value":77.9,"unit":"%","bm":"isi rumah di bandar (kadar urbanisasi isi rumah)","en":"urban households","ref":"Bahagian 2.2"},{"id":"rural_hh","value":1.8,"unit":"juta","bm":"isi rumah luar bandar, tidak berubah sejak 2022","en":"rural households","ref":"Bahagian 2.2"}],"headline":[{"id":"income","value":7017,"prefix":"RM","unit":"sebulan","label_bm":"Pendapatan median isi rumah","label_en":"Median household income, 2024","note_bm":"CAGR 5.1% (nominal) 2022–24","ref":"Rumusan Eksekutif; Rajah 2.5"},{"id":"spend","value":4758,"prefix":"RM","unit":"sebulan","label_bm":"Perbelanjaan median isi rumah","label_en":"Median household expenditure, 2024","note_bm":"CAGR 5.3% (nominal) 2022–24","ref":"Rumusan Eksekutif; Jadual 3.1"},{"id":"poverty","value":5.1,"prefix":"","unit":"%","label_bm":"Isi rumah dalam kemiskinan mutlak","label_en":"Households in absolute poverty, 2024","note_bm":"Turun dari 6.2% (2022)","ref":"Rajah 2.45"},{"id":"gini","value":0.39,"prefix":"","unit":"","label_bm":"Pekali Gini","label_en":"Gini coefficient, 2024","note_bm":"Paling rendah pernah direkod (0.404 pada 2022)","ref":"Rajah 2.26"},{"id":"mhi","value":7.6,"prefix":"","unit":"/ 10","label_bm":"Indeks Kebahagiaan Malaysia","label_en":"Malaysia Happiness Index, 2024","note_bm":"Naik dari 6.48 (2021)","ref":"Rajah 1.6"},{"id":"lfpr","value":70.6,"prefix":"","unit":"%","label_bm":"Kadar penyertaan tenaga buruh","label_en":"Labour force participation rate, 2024","note_bm":"69.3% (2022), 68.7% (2019)","ref":"Rumusan Eksekutif"}],"income_brackets":[{"bracket":"below_2k","bm":"Pendapatan bawah RM2,000","en":"Income below RM2,000","y2014":11.7,"y2024":3.0},{"bracket":"above_14k","bm":"Pendapatan atas RM14,000","en":"Income above RM14,000","y2014":6.5,"y2024":15.3}],"lfpr":[{"year":2019,"lfpr":68.7},{"year":2022,"lfpr":69.3},{"year":2024,"lfpr":70.6}],"mhi":[{"comp":"total","bm":"Keseluruhan","en":"Total","y2021":6.48,"y2024":7.6},{"comp":"religion","bm":"Agama & kerohanian","en":"Religion & spiritual","y2021":null,"y2024":8.69},{"comp":"family","bm":"Keluarga","en":"Family","y2021":null,"y2024":8.64},{"comp":"income","bm":"Pendapatan","en":"Income","y2021":null,"y2024":6.4},{"comp":"culture","bm":"Budaya","en":"Culture","y2021":6.2,"y2024":6.22}],"national_trend":[{"year":2014,"median_income":5511,"median_residual":1970,"median_exp":null},{"year":2016,"median_income":6029,"median_residual":2184,"median_exp":null},{"year":2019,"median_income":6420,"median_residual":2394,"median_exp":4026},{"year":2022,"median_income":6615,"median_residual":2145,"median_exp":4469},{"year":2024,"median_income":7017,"median_residual":2259,"median_exp":4758}],"poverty_strata":[{"year":2019,"overall":5.6,"urban":3.8,"rural":12.4},{"year":2022,"overall":6.2,"urban":4.5,"rural":12.0},{"year":2024,"overall":5.1,"urban":3.7,"rural":9.9}],"spend_share":[{"cat":"housing","bm":"Perumahan & utiliti","en":"Housing & utilities","s2016":23.8,"s2019":23.2,"s2022":23.2,"s2024":23.5},{"cat":"eat_out","bm":"Makan di luar","en":"Food away from home","s2016":12.6,"s2019":13.0,"s2022":15.3,"s2024":16.2},{"cat":"food_home","bm":"Makanan di rumah","en":"Food at home","s2016":17.7,"s2019":16.9,"s2022":16.3,"s2024":15.7},{"cat":"transport","bm":"Pengangkutan","en":"Transport","s2016":13.7,"s2019":13.4,"s2022":11.3,"s2024":11.0},{"cat":"comms","bm":"Komunikasi","en":"Communication","s2016":6.9,"s2019":6.7,"s2022":6.6,"s2024":6.2}],"states":[{"state":"Selangor","region":"Tengah","inc2014":7469,"inc2016":8332,"inc2019":8974,"inc2022":10419,"inc2024":10726,"cagr2224":1.5,"exp2019":5328,"exp2022":5998,"exp2024":6251,"res2019":3646,"res2022":4421,"res2024":4475,"hh_under4":11.5,"hh_over65":18.4,"poverty_above_national":"tidak"},{"state":"Putrajaya","region":"Tengah","inc2014":9029,"inc2016":9543,"inc2019":10912,"inc2022":10495,"inc2024":10769,"cagr2224":1.3,"exp2019":7090,"exp2022":6934,"exp2024":7885,"res2019":3823,"res2022":3561,"res2024":2884,"hh_under4":15.9,"hh_over65":6.0,"poverty_above_national":"tidak"},{"state":"Kuala Lumpur","region":"Tengah","inc2014":9159,"inc2016":10463,"inc2019":11531,"inc2022":10681,"inc2024":10802,"cagr2224":0.6,"exp2019":6251,"exp2022":6504,"exp2024":6789,"res2019":5280,"res2022":4177,"res2024":4013,"hh_under4":6.0,"hh_over65":15.3,"poverty_above_national":"tidak"},{"state":"Kelantan","region":"Pantai Timur","inc2014":3264,"inc2016":3551,"inc2019":3895,"inc2022":3772,"inc2024":4083,"cagr2224":4.0,"exp2019":2902,"exp2022":3182,"exp2024":3408,"res2019":993,"res2022":590,"res2024":675,"hh_under4":15.9,"hh_over65":33.2,"poverty_above_national":"ya"},{"state":"Pahang","region":"Pantai Timur","inc2014":4073,"inc2016":4589,"inc2019":4853,"inc2022":4961,"inc2024":4975,"cagr2224":0.1,"exp2019":3396,"exp2022":3666,"exp2024":3732,"res2019":1457,"res2022":1294,"res2024":1243,"hh_under4":13.0,"hh_over65":29.0,"poverty_above_national":"ya"},{"state":"Terengganu","region":"Pantai Timur","inc2014":4540,"inc2016":5413,"inc2019":6061,"inc2022":6135,"inc2024":6627,"cagr2224":3.9,"exp2019":4205,"exp2022":4401,"exp2024":4758,"res2019":1857,"res2022":1734,"res2024":1869,"hh_under4":18.4,"hh_over65":22.8,"poverty_above_national":"tidak"},{"state":"Sabah","region":"Malaysia Timur","inc2014":4501,"inc2016":4740,"inc2019":4629,"inc2022":4777,"inc2024":4890,"cagr2224":1.2,"exp2019":2491,"exp2022":2891,"exp2024":2946,"res2019":2138,"res2022":1886,"res2024":1944,"hh_under4":16.6,"hh_over65":24.8,"poverty_above_national":"ya"},{"state":"Sarawak","region":"Malaysia Timur","inc2014":4541,"inc2016":4801,"inc2019":4967,"inc2022":5195,"inc2024":5504,"cagr2224":2.9,"exp2019":3230,"exp2022":3526,"exp2024":3753,"res2019":1737,"res2022":1669,"res2024":1751,"hh_under4":11.1,"hh_over65":31.8,"poverty_above_national":"ya"},{"state":"Labuan","region":"Malaysia Timur","inc2014":6832,"inc2016":6836,"inc2019":7352,"inc2022":7206,"inc2024":7383,"cagr2224":1.2,"exp2019":3884,"exp2022":3989,"exp2024":3890,"res2019":3468,"res2022":3216,"res2024":3493,"hh_under4":21.7,"hh_over65":24.2,"poverty_above_national":"tidak"},{"state":"N. Sembilan","region":"Selatan","inc2014":4962,"inc2016":5281,"inc2019":5471,"inc2022":5454,"inc2024":5591,"cagr2224":1.2,"exp2019":4063,"exp2022":4038,"exp2024":4431,"res2019":1408,"res2022":1416,"res2024":1160,"hh_under4":11.5,"hh_over65":31.3,"poverty_above_national":"tidak"},{"state":"Melaka","region":"Selatan","inc2014":6044,"inc2016":6444,"inc2019":6618,"inc2022":6481,"inc2024":6891,"cagr2224":3.1,"exp2019":4304,"exp2022":5074,"exp2024":5148,"res2019":2313,"res2022":1408,"res2024":1743,"hh_under4":14.1,"hh_over65":31.0,"poverty_above_national":"tidak"},{"state":"Johor","region":"Selatan","inc2014":6246,"inc2016":6518,"inc2019":7025,"inc2022":7180,"inc2024":7712,"cagr2224":3.6,"exp2019":4414,"exp2022":4838,"exp2024":5280,"res2019":2611,"res2022":2341,"res2024":2432,"hh_under4":11.2,"hh_over65":26.4,"poverty_above_national":"tidak"},{"state":"Perak","region":"Utara","inc2014":4148,"inc2016":4620,"inc2019":4671,"inc2022":4690,"inc2024":4687,"cagr2224":0.0,"exp2019":3212,"exp2022":3487,"exp2024":3602,"res2019":1459,"res2022":1203,"res2024":1085,"hh_under4":9.8,"hh_over65":41.7,"poverty_above_national":"ya"},{"state":"Kedah","region":"Utara","inc2014":4148,"inc2016":4395,"inc2019":4728,"inc2022":4594,"inc2024":4895,"cagr2224":3.2,"exp2019":3023,"exp2022":3442,"exp2024":3495,"res2019":1705,"res2022":1152,"res2024":1400,"hh_under4":13.6,"hh_over65":32.7,"poverty_above_national":"ya"},{"state":"Perlis","region":"Utara","inc2014":4207,"inc2016":4848,"inc2019":5022,"inc2022":4919,"inc2024":4950,"cagr2224":0.3,"exp2019":3461,"exp2022":3501,"exp2024":3468,"res2019":1561,"res2022":1418,"res2024":1482,"hh_under4":13.1,"hh_over65":35.0,"poverty_above_national":"tidak"},{"state":"P. Pinang","region":"Utara","inc2014":5651,"inc2016":6238,"inc2019":6743,"inc2022":6786,"inc2024":7386,"cagr2224":4.3,"exp2019":4164,"exp2022":4677,"exp2024":4860,"res2019":2580,"res2022":2109,"res2024":2526,"hh_under4":8.7,"hh_over65":33.0,"poverty_above_national":"tidak"},{"state":"MALAYSIA","region":"Nasional","inc2014":5511,"inc2016":6029,"inc2019":6420,"inc2022":6615,"inc2024":7017,"cagr2224":3.0,"exp2019":4026,"exp2022":4469,"exp2024":4758,"res2019":2394,"res2022":2145,"res2024":2259,"hh_under4":11.9,"hh_over65":26.8,"poverty_above_national":"-"}]};
+(function(){
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches, DUR = reduce ? 0 : 900;
+const fmt = d3.format(','), f1 = d3.format('.1f');
+const css = n => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim();
+const $ = id => document.getElementById(id), tip = $('tip'), app = $('app');
+const showTip = (e, t) => { tip.textContent = t; tip.style.opacity = 1; const b = app.getBoundingClientRect(); let x = e.clientX - b.left + 12; if (x + tip.offsetWidth > b.width) x = e.clientX - b.left - tip.offsetWidth - 12; tip.style.left = Math.max(4, x) + 'px'; tip.style.top = (e.clientY - b.top + 14) + 'px'; };
+const hide = () => tip.style.opacity = 0;
+const facts = Object.fromEntries(DATA.facts.map(r => [r.id, r.value]));
+const ST = DATA.states, NAT = ST.find(s => s.state === 'MALAYSIA'), STS = ST.filter(s => s.state !== 'MALAYSIA');
+const ABBR = {"Perlis":"PLS","Kedah":"KDH","P. Pinang":"PNG","Kelantan":"KTN","Terengganu":"TRG","Perak":"PRK","Pahang":"PHG","Selangor":"SGR","Kuala Lumpur":"KUL","N. Sembilan":"NSN","Putrajaya":"PJY","Melaka":"MLK","Johor":"JHR","Labuan":"LBN","Sabah":"SBH","Sarawak":"SWK","MALAYSIA":"MY"};
+const REGC = {"Tengah":"#211f24","Pantai Timur":"#ff4013","Malaysia Timur":"#8f1f12","Selatan":"#b49a8f","Utara":"#8c8e94","Nasional":"#ff4013"};
+let sel = 'MALAYSIA', sortK = 'inc2024', sortDir = -1, growMode = 'cagr';
+const W = el => Math.max(260, el.clientWidth);
+const pct = (a, b) => (a / b - 1) * 100;
+const countUp = (el, v, f) => { if (reduce) { el.textContent = f(v); return; } d3.select(el).transition().duration(1200).ease(d3.easeCubicOut).tween('t', () => { const i = d3.interpolateNumber(0, v); return t => el.textContent = f(i(t)); }); };
+
+/* KPI 1: income sparkline 2014–2024, last point marked */
+function k1(){
+  const yrs = [2014, 2016, 2019, 2022, 2024], vals = yrs.map(y => NAT['inc' + y]);
+  countUp($('k1v'), NAT.inc2024, v => 'RM' + fmt(Math.round(v)));
+  $('k1c').textContent = '↗ ' + f1(pct(NAT.inc2024, NAT.inc2022)) + '%';
+  $('k1p').textContent = 'RM' + fmt(NAT.inc2022) + '  pada 2022 (benar)';
+  const el = $('k1s'); el.replaceChildren(); const w = W(el), h = 92, m = {l: 6, r: 52, t: 18, b: 18};
+  const x = d3.scalePoint(yrs, [m.l, w - m.r]), y = d3.scaleLinear([5000, 7400], [h - m.b, m.t]);
+  const svg = d3.select(el).append('svg').attr('viewBox', `0 0 ${w} ${h}`);
+  const p = svg.append('path').attr('d', d3.line().x((d, i) => x(yrs[i])).y(d => y(d))(vals)).attr('fill', 'none').attr('stroke', '#fff').attr('stroke-width', 2).attr('stroke-linejoin', 'round');
+  if (!reduce) { const L = p.node().getTotalLength(); p.attr('stroke-dasharray', `${L} ${L}`).attr('stroke-dashoffset', L).transition().duration(1300).attr('stroke-dashoffset', 0); }
+  svg.selectAll('text.x').data(yrs).join('text').attr('x', d => x(d)).attr('y', h - 2).attr('text-anchor', 'middle').attr('fill', '#bfc0c4').attr('font-size', 11).text(d => d);
+  svg.append('line').attr('x1', x(2024)).attr('x2', x(2024)).attr('y1', m.t - 10).attr('y2', h - m.b).attr('stroke', '#77787d');
+  svg.append('circle').attr('cx', x(2024)).attr('cy', y(NAT.inc2024)).attr('r', 4.5).attr('fill', css('orange'));
+  svg.append('rect').attr('x', x(2024) + 6).attr('y', y(NAT.inc2024) - 10).attr('width', 46).attr('height', 18).attr('rx', 3).attr('fill', '#3a383e');
+  svg.append('text').attr('x', x(2024) + 29).attr('y', y(NAT.inc2024) + 3).attr('text-anchor', 'middle').attr('fill', '#fff').attr('font-size', 11).text(fmt(NAT.inc2024));
+  svg.append('text').attr('x', x(2014)).attr('y', y(NAT.inc2014) - 8).attr('fill', '#bfc0c4').attr('font-size', 11).text(fmt(NAT.inc2014));
+}
+/* KPI 2: households, urban vs rural split bar */
+function k2(){
+  countUp($('k2v'), facts.households, v => v.toFixed(1) + ' juta');
+  $('k2c').textContent = '○ ' + f1(facts.urban_hh_share) + '% bandar';
+  $('k2p').textContent = 'Luar bandar ' + f1(facts.rural_hh) + ' juta, tidak berubah sejak 2022';
+  const el = $('k2s'); el.replaceChildren(); const w = W(el), h = 98;
+  const u = facts.urban_hh_share, r = +(100 - u).toFixed(1), x = d3.scaleLinear([0, 100], [0, w]);
+  const svg = d3.select(el).append('svg').attr('viewBox', `0 0 ${w} ${h}`);
+  const a = svg.append('rect').attr('x', 0).attr('y', 4).attr('height', 64).attr('rx', 10).attr('fill', css('dark')).attr('stroke', css('dark')).attr('width', 0);
+  const b = svg.append('rect').attr('y', 4).attr('height', 64).attr('rx', 10).attr('fill', '#fff').attr('x', 0).attr('width', 0);
+  a.transition().duration(DUR).attr('width', x(u) - 3);
+  b.transition().duration(DUR).attr('x', x(u)).attr('width', w - x(u));
+  svg.append('text').attr('x', 10).attr('y', 60).attr('fill', '#fff').attr('font-size', 12).attr('font-weight', 600).text(f1(u) + '%');
+  svg.append('text').attr('x', w - 8).attr('y', 60).attr('text-anchor', 'end').attr('fill', css('ink')).attr('font-size', 12).attr('font-weight', 600).text(f1(r) + '%');
+  svg.append('circle').attr('cx', 6).attr('cy', 88).attr('r', 5).attr('fill', css('dark'));
+  svg.append('text').attr('x', 16).attr('y', 92).attr('fill', '#fff').attr('font-size', 13).text('Bandar');
+  svg.append('circle').attr('cx', w - 92).attr('cy', 88).attr('r', 5).attr('fill', '#fff');
+  svg.append('text').attr('x', w - 82).attr('y', 92).attr('fill', '#fff').attr('font-size', 13).text('Luar bandar');
+}
+/* KPI 3: spending; mini heat grid states × years */
+function k3(){
+  countUp($('k3v'), NAT.exp2024, v => 'RM' + fmt(Math.round(v)));
+  $('k3c').textContent = '↗ ' + f1(pct(NAT.exp2024, NAT.exp2022)) + '%';
+  $('k3p').textContent = 'RM' + fmt(NAT.exp2022) + '  pada 2022 (benar)';
+  const el = $('k3s'); el.replaceChildren(); const w = W(el), rows = STS.slice().sort((a, b) => b.exp2024 - a.exp2024), yrs = ['exp2019', 'exp2022', 'exp2024'];
+  const cw = (w - 4) / rows.length, ch = 18, h = ch * 3 + 22;
+  const c = d3.scaleLinear([2400, 8000], ['#f4f4f5', '#141316']);
+  const svg = d3.select(el).append('svg').attr('viewBox', `0 0 ${w} ${h}`);
+  rows.forEach((s, i) => yrs.forEach((k, j) => svg.append('rect').attr('x', i * cw + 1).attr('y', j * ch).attr('width', cw - 2).attr('height', ch - 2).attr('fill', '#f4f4f5')
+    .on('mousemove', e => showTip(e, `${s.state} ${k.slice(3)}: RM${fmt(s[k])}`)).on('mouseleave', hide)
+    .transition().delay(reduce ? 0 : i * 40 + j * 120).duration(400).attr('fill', c(s[k]))));
+  ['2019', '2022', '2024'].forEach((t, j) => svg.append('text').attr('x', -4).attr('y', j * ch + 12).attr('text-anchor', 'end').attr('font-size', 10).attr('fill', css('muted')).text(t));
+  svg.append('text').attr('x', 1).attr('y', h - 4).attr('font-size', 11).attr('fill', css('muted')).text(ABBR[rows[0].state] + ' tertinggi');
+  svg.append('text').attr('x', w - 1).attr('y', h - 4).attr('text-anchor', 'end').attr('font-size', 11).attr('fill', css('muted')).text(ABBR[rows[rows.length - 1].state] + ' terendah');
+}
+
+/* Bars: income (hatched) behind spending (black); selected in orange with callout */
+function bars(){
+  const el = $('bars'); el.replaceChildren();
+  const rows = ST.slice().sort((a, b) => b.inc2024 - a.inc2024), w = W(el), h = w < 600 ? 320 : 300, m = {t: 52, b: w < 600 ? 50 : 34, l: 4, r: 4};
+  const x = d3.scaleBand(rows.map(d => d.state), [m.l, w - m.r]).paddingInner(w < 600 ? .25 : .38), y = d3.scaleLinear([0, 11500], [h - m.b, m.t]);
+  const svg = d3.select(el).append('svg').attr('viewBox', `0 0 ${w} ${h}`);
+  const defs = svg.append('defs'); const pat = defs.append('pattern').attr('id', 'hatch').attr('width', 5).attr('height', 5).attr('patternUnits', 'userSpaceOnUse').attr('patternTransform', 'rotate(45)');
+  pat.append('rect').attr('width', 5).attr('height', 5).attr('fill', '#fff'); pat.append('line').attr('x1', 0).attr('y1', 0).attr('x2', 0).attr('y2', 5).attr('stroke', '#b9babe').attr('stroke-width', 2.4);
+  svg.append('line').attr('x1', m.l).attr('x2', w - m.r).attr('y1', y(0)).attr('y2', y(0)).attr('stroke', css('line'));
+  const g = svg.selectAll('g.b').data(rows).join('g').attr('class', 'b').style('cursor', 'pointer').on('click', (e, d) => { sel = d.state; bars(); table(); })
+    .on('mousemove', (e, d) => showTip(e, `${d.state}: pendapatan RM${fmt(d.inc2024)}, belanja RM${fmt(d.exp2024)}`)).on('mouseleave', hide);
+  const bw = x.bandwidth();
+  g.append('rect').attr('x', d => x(d.state)).attr('width', bw).attr('y', y(0)).attr('height', 0).attr('fill', d => d.state === sel ? '#fff' : 'url(#hatch)').attr('stroke', d => d.state === sel ? css('line') : 'none').attr('rx', d => d.state === sel ? 6 : 0)
+    .transition().duration(DUR).delay((d, i) => i * 30).attr('y', d => y(d.inc2024)).attr('height', d => y(0) - y(d.inc2024));
+  g.append('rect').attr('x', d => x(d.state) + (d.state === sel ? 0 : bw * .08)).attr('width', d => d.state === sel ? bw : bw * .84).attr('y', y(0)).attr('height', 0).attr('fill', d => d.state === sel ? css('orange') : css('dark')).attr('rx', d => d.state === sel ? 6 : 0)
+    .transition().duration(DUR).delay((d, i) => 200 + i * 30).attr('y', d => y(d.exp2024)).attr('height', d => y(0) - y(d.exp2024));
+  const narrow = w < 600;
+  g.append('text').attr('transform', d => `translate(${x(d.state) + bw / 2},${h - (narrow ? 26 : 18)})` + (narrow ? ' rotate(-60)' : '')).attr('text-anchor', narrow ? 'end' : 'middle').attr('font-size', 11).attr('fill', d => d.state === sel ? css('ink') : css('muted')).attr('font-weight', d => d.state === sel ? 700 : 400).text(d => ABBR[d.state]);
+  // callout
+  const s = rows.find(d => d.state === sel), ratio = s.exp2024 / s.inc2024 * 100;
+  const cx = Math.min(Math.max(x(s.state) + bw / 2, 70), w - 70), cy = y(s.inc2024) - 8;
+  const cg = svg.append('g').attr('transform', `translate(${cx},${cy})`);
+  cg.append('rect').attr('x', -64).attr('y', -40).attr('width', 128).attr('height', 34).attr('rx', 8).attr('fill', '#fff').attr('stroke', css('ink'));
+  cg.append('text').attr('y', -25).attr('text-anchor', 'middle').attr('font-size', 12).attr('font-weight', 700).text(`${f1(ratio)}% belanja`);
+  cg.append('text').attr('y', -12).attr('text-anchor', 'middle').attr('font-size', 11).attr('fill', css('muted')).text(`${s.state === 'MALAYSIA' ? 'Malaysia' : s.state}`);
+}
+
+/* Table */
+function table(){
+  const tb = document.querySelector('#tbl tbody'); tb.replaceChildren();
+  const rows = ST.slice().sort((a, b) => sortK === 'state' ? sortDir * a.state.localeCompare(b.state) : sortDir * (a[sortK] - b[sortK]));
+  document.querySelectorAll('#tbl th').forEach(th => { const k = th.querySelector('button').dataset.k; th.setAttribute('aria-sort', k === sortK ? (sortDir > 0 ? 'ascending' : 'descending') : 'none'); });
+  rows.forEach(s => {
+    const tr = document.createElement('tr'); if (s.state === 'MALAYSIA') tr.className = 'nat';
+    if (s.state === sel) tr.style.background = '#fff3ee';
+    const td0 = document.createElement('td'); const d = document.createElement('div'); d.className = 'st'; const ab = document.createElement('span'); ab.className = 'ab'; ab.style.background = REGC[s.region]; ab.textContent = ABBR[s.state]; d.append(ab, s.state === 'MALAYSIA' ? 'Malaysia' : s.state); td0.appendChild(d); tr.appendChild(td0);
+    const cells = ['RM' + fmt(s.inc2022), f1(s.cagr2224) + '%', 'RM' + fmt(s.inc2024), 'RM' + fmt(s.exp2024), 'RM' + fmt(s.res2024), f1(s.hh_over65) + '%'];
+    cells.forEach((t, i) => { const td = document.createElement('td'); td.textContent = t; if (i === 1) td.className = s.cagr2224 > NAT.cagr2224 ? 'pos' : 'zero'; tr.appendChild(td); });
+    tr.style.cursor = 'pointer'; tr.onclick = () => { sel = s.state; bars(); table(); };
+    tb.appendChild(tr);
+  });
+}
+document.querySelectorAll('#tbl th button').forEach(b => b.onclick = () => { const k = b.dataset.k; if (sortK === k) sortDir *= -1; else { sortK = k; sortDir = k === 'state' ? 1 : -1; } table(); });
+
+/* Petal chart: MHI 2024 components */
+function petal(){
+  const el = $('petal'); el.replaceChildren();
+  const rows = DATA.mhi.filter(d => d.comp !== 'total'), w = W(el), size = Math.min(w, 300), R = size / 2 - 14;
+  const cols = [css('orange'), css('rust'), css('sand'), css('stone')];
+  const svg = d3.select(el).append('svg').attr('viewBox', `${-w / 2} ${-size / 2} ${w} ${size}`);
+  svg.append('circle').attr('r', R).attr('fill', 'none').attr('stroke', css('line')).attr('stroke-width', 1.5);
+  const ang = 2 * Math.PI / rows.length, gap = .12;
+  rows.forEach((d, i) => {
+    const a0 = i * ang + gap / 2, a1 = (i + 1) * ang - gap / 2, r = R * d.y2024 / 10;
+    svg.append('path').attr('d', d3.arc().innerRadius(R * .16).outerRadius(R).startAngle(a0).endAngle(a1).cornerRadius(10)()).attr('fill', '#fff').attr('stroke', css('line'));
+    const p = svg.append('path').attr('fill', cols[i]).attr('stroke', '#fff').attr('stroke-width', 2)
+      .on('mousemove', e => showTip(e, `${d.bm}: ${d.y2024.toFixed(2)}`)).on('mouseleave', hide);
+    const arc = t => d3.arc().innerRadius(R * .16).outerRadius(R * .16 + (r - R * .16) * t).startAngle(a0).endAngle(a1).cornerRadius(8)();
+    if (reduce) p.attr('d', arc(1)); else p.transition().duration(1100).delay(i * 150).ease(d3.easeBackOut.overshoot(1.1)).attrTween('d', () => arc);
+    const mid = (a0 + a1) / 2, lr = Math.max(R * .5, r - 16);
+    const lx = Math.sin(mid) * lr, ly = -Math.cos(mid) * lr;
+    svg.append('rect').attr('x', lx - 22).attr('y', ly - 10).attr('width', 44).attr('height', 20).attr('rx', 10).attr('fill', '#fff');
+    svg.append('text').attr('x', lx).attr('y', ly + 4).attr('text-anchor', 'middle').attr('font-size', 12).attr('font-weight', 700).text(d.y2024.toFixed(2));
+  });
+  const tot = DATA.mhi.find(d => d.comp === 'total');
+  svg.append('circle').attr('r', R * .15).attr('fill', css('dark'));
+  svg.append('text').attr('y', 5).attr('text-anchor', 'middle').attr('fill', '#fff').attr('font-size', 13).attr('font-weight', 700).text(tot.y2024.toFixed(1));
+  const lg = $('petal-legend'); lg.replaceChildren();
+  rows.forEach((d, i) => { const s = document.createElement('span'); const c = document.createElement('i'); c.style.background = cols[i]; s.append(c, d.bm); lg.appendChild(s); });
+  const s = document.createElement('span'); const c = document.createElement('i'); c.style.background = css('dark'); s.append(c, `Keseluruhan (2021: ${tot.y2021.toFixed(2)})`); lg.appendChild(s);
+}
+
+/* Thin bars: states growing faster than national */
+function seg(){
+  const el = $('seg'); el.replaceChildren();
+  [['cagr', 'Pertumbuhan'], ['inc', 'Pendapatan 2024']].forEach(([k, t]) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.setAttribute('aria-pressed', growMode === k); b.onclick = () => { growMode = k; seg(); grow(); }; el.appendChild(b); });
+}
+function grow(){
+  const el = $('grow'); el.replaceChildren();
+  const rows = STS.filter(s => s.cagr2224 > NAT.cagr2224).sort((a, b) => a.cagr2224 - b.cagr2224), w = W(el), h = 210, m = {t: 26, b: 24};
+  const val = d => growMode === 'cagr' ? d.cagr2224 : d.inc2024, lab = d => growMode === 'cagr' ? f1(d.cagr2224) + '%' : 'RM' + fmt(d.inc2024);
+  const x = d3.scaleBand(rows.map(d => d.state), [10, w - 10]).padding(.55), y = d3.scaleLinear([0, d3.max(rows, val) * 1.08], [h - m.b, m.t]);
+  const svg = d3.select(el).append('svg').attr('viewBox', `0 0 ${w} ${h}`);
+  svg.append('line').attr('x1', 0).attr('x2', w).attr('y1', y(0)).attr('y2', y(0)).attr('stroke', css('line'));
+  if (growMode === 'cagr') { svg.append('line').attr('x1', 0).attr('x2', w).attr('y1', y(NAT.cagr2224)).attr('y2', y(NAT.cagr2224)).attr('stroke', css('orange')).attr('stroke-dasharray', '4 3'); }
+  const bw = Math.min(14, x.bandwidth());
+  const g = svg.selectAll('g').data(rows).join('g').attr('transform', d => `translate(${x(d.state) + x.bandwidth() / 2},0)`);
+  g.append('rect').attr('x', -bw / 2).attr('width', bw).attr('rx', 3).attr('fill', css('dark')).attr('y', y(0)).attr('height', 0).transition().duration(DUR).delay((d, i) => i * 90).attr('y', d => y(val(d))).attr('height', d => y(0) - y(val(d)));
+  g.append('text').attr('y', d => y(val(d)) - 7).attr('text-anchor', 'middle').attr('font-size', 11.5).attr('font-weight', 600).text(lab);
+  g.append('text').attr('y', h - 6).attr('text-anchor', 'middle').attr('font-size', 11.5).attr('fill', css('muted')).text(d => ABBR[d.state]);
+}
+function note(){
+  const n = $('note'); n.replaceChildren();
+  const b = document.createElement('b'); b.textContent = `${facts.districts_above_median} daripada ${facts.districts_total} daerah`;
+  const t = document.createElement('div'); t.textContent = `melepasi median nasional RM${fmt(NAT.inc2024)}. ${f1(facts.hh_in_rich_districts)}% isi rumah tinggal di daerah itu.`;
+  const s = document.createElement('span'); s.textContent = `Kemiskinan mutlak: ${f1(DATA.poverty_strata[2].overall)}% (2024), turun dari ${f1(DATA.poverty_strata[1].overall)}% (2022).`;
+  n.append(b, t, s);
+}
+function all(){ k1(); k2(); k3(); bars(); table(); petal(); seg(); grow(); note(); }
+all();
+let rw = innerWidth; addEventListener('resize', () => { if (Math.abs(innerWidth - rw) < 40) return; rw = innerWidth; all(); });
+})();
+</script>
+
+</body></html>
